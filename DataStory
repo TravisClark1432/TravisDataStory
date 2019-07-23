@@ -1,0 +1,86 @@
+--
+title: "Consumer Complaints Data"
+author: "Travis Clark"
+date: "7/22/2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Introduction
+
+There is an ongoing issue with fraud and identity theft in the United States. Everyday consumers are harassed by scammers who use robocalls in order to collect unrightfully owed funds from these consumers. Also consumers must fight against unfair business practices which can be legal but border on the line of fraudulent activity. The Consumer Complaint Database tracks various complaints from consumers for mortgages, credit cards, auto loans, and student loans. By tracking trends over time with this data, it should help warn us of potential problems in a given market. This can help us prepare for the future to eliminate or reduce these issues for consumers. With the Consumer Complaint Database we can narrow down which company reports incorrectly information on a consumers credit profile. The consumers of each company are the clients. These clients are the ones affected by these debt collection calls throughout the country. With us narrowing down which companies are experiencing the most debt collection calls towards their consumers, we can then determine effective ways to block or stop these calls in the future. We are going to gather this data from the Consumer Complaints Database that shows different complaints from different companies and the type of issues each consumer has experienced. We are going to use R to narrow down complaints only in the state of Georgia. 
+
+Let us start off by declaring the libraries we would be using in our analysis. `tidyverse` is a great package to have as it contains virtually every tool that we would require for data wrangling.
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(lubridate) #For dealing  with dates
+```
+
+## Exploratory Data Analysis
+
+We can start off by importing our data and having a quick look at it.
+```{r,warning=FALSE, message=FALSE}
+complaints <- read_csv("Consumer_Complaints.csv")
+glimpse(complaints)
+```
+
+As wee can see, there are a total of `r nrow(complaints)` rows and `r length(names(complaints))` in our dataset. Most of the variables  are self explanotary. We also notice that there are two datevariables which are being read in as character variables. We can easily convert these to date types using the functions from `lubridate` package.
+
+```{r}
+complaints$`Date received` <- mdy(complaints$`Date received`)
+complaints$`Date sent to company` <- mdy(complaints$`Date sent to company`)
+glimpse(complaints)
+```
+
+As you can see, now these are date variables. We can now start exploring our data and start asking probing questions and answer them with visual plots. Let us start off by having a look at the `Product`. How many different types of products are there andd what is their count?
+
+```{r}
+(Products <- complaints %>% count(Product) %>% arrange(desc(n)))
+```
+
+We can even see this as a plot.
+
+```{r}
+ggplot(Products, aes(x = reorder(Product,n), y =n, fill = n)) +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  labs(x = NULL, y = NULL) 
+```
+
+It is quite evident that Mortgage, debt collection and credit reporting are the major areas where consumers are not very happy. 
+
+What about the states? Which states have the maximum number of complaints? Let's look at only the top 10 states.
+
+```{r}
+complaints %>% count(State) %>% arrange(desc(n)) %>% 
+  top_n(10) %>% 
+  ggplot(aes(x = reorder(State, n), y = n, fill = n))  +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  labs(x = NULL, y = NULL) 
+```
+
+As we can see, the states of California, Florida and Texas are the ones that see the maximum number of complaints. Now let's look at companies and again restrict ourselves to the top 10.
+
+```{r}
+companies <- complaints %>% count(Company) %>% arrange(desc(n)) %>% 
+  top_n(10)  
+  ggplot(companies, aes(x = reorder(Company, n), y = n, fill = n))  +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  labs(x = NULL, y = NULL)  
+```
+
+For my analysis, I am only going to focus on the states of Georgia, Alabama and Florida. Also I am only interested in Debt collection and credit reporting and also the top 3 companies. We can now create a new dataframe with our filters.
+
+```{r}
+df <- complaints %>% filter(
+  State %in% c('AL', 'FL', 'GA'),
+  Product %in% Products$Product[2:4],
+  Company %in% companies$Company[1:3]
+)
+```
+
+Now with this dataframe (`df`), can you tell which are the top issues and sub-issues for each of the 3 products in our reduced dataframe?
